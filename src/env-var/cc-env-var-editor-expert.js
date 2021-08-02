@@ -91,9 +91,7 @@ export class CcEnvVarEditorExpert extends LitElement {
   _onInput ({ detail: value }) {
     const { variables, errors } = parseRaw(value);
     this._setErrors(errors);
-    if (errors.length === 0) {
-      dispatchCustomEvent(this, 'change', variables);
-    }
+    dispatchCustomEvent(this, 'change', variables);
   }
 
   update (changedProperties) {
@@ -109,7 +107,6 @@ export class CcEnvVarEditorExpert extends LitElement {
   }
 
   render () {
-
     const placeholder = this.readonly
       ? i18n('cc-env-var-editor-expert.placeholder-readonly')
       : i18n('cc-env-var-editor-expert.placeholder');
