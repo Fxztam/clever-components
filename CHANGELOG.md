@@ -8,6 +8,8 @@ title: Changelog
 
 * New component:
   * `<cc-env-var-editor-json>`
+* `<cc-env-var-form>`: add JSON mode
+
 
 ### For devs
 
