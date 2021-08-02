@@ -6,6 +6,9 @@ title: Changelog
 
 ## Unreleased (????-??-??)
 
+* New component:
+  * `<cc-env-var-editor-json>`
+
 ### For devs
 
 * Improve type definitions documentation:
