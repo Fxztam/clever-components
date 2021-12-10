@@ -7,6 +7,7 @@ import { css, html, LitElement } from 'lit-element';
 import { dispatchCustomEvent } from '../lib/events.js';
 import { i18n } from '../lib/i18n.js';
 import { defaultThemeStyles } from '../styles/default-theme.js';
+import { linkStyles } from '../templates/cc-link.js';
 
 /**
  * A small form to create a new environment variable with validations on the name.
@@ -27,6 +28,7 @@ export class CcEnvVarCreate extends LitElement {
   static get properties () {
     return {
       disabled: { type: Boolean },
+      mode: { type: String },
       variablesNames: { type: Array, attribute: 'variables-names' },
       _variableName: { type: String, attribute: false },
       _variableValue: { type: String, attribute: false },
@@ -38,6 +40,9 @@ export class CcEnvVarCreate extends LitElement {
 
     /** @type {boolean} Sets `disabled` attribute on inputs and button. */
     this.disabled = false;
+
+    /** @type {string} Sets the mode of the variables name validation. */
+    this.mode = '';
 
     /** @type {string[]} Sets list of existing variables names (so we can display an error if it already exists). */
     this.variablesNames = [];
@@ -82,9 +87,12 @@ export class CcEnvVarCreate extends LitElement {
 
   render () {
 
-    const isNameInvalid = !validateName(this._variableName);
+    const isNameInvalidSimple = !validateName(this._variableName, 'simple');
+    const isNameInvalidStrict = !validateName(this._variableName, 'strict');
     const isNameAlreadyDefined = this.variablesNames.includes(this._variableName);
-    const hasErrors = isNameInvalid || isNameAlreadyDefined;
+    const hasErrors = (this.mode === 'strict')
+      ? isNameInvalidStrict || isNameAlreadyDefined
+      : isNameInvalidSimple || !isNameInvalidStrict || isNameAlreadyDefined;
 
     return html`
       <cc-flex-gap>
@@ -116,64 +124,74 @@ export class CcEnvVarCreate extends LitElement {
             primary
             ?disabled=${hasErrors || this.disabled}
             @cc-button:click=${this._onSubmit}
-          >${i18n('cc-env-var-create.create-button')}</cc-button>
-
+          >${i18n('cc-env-var-create.create-button')}
+          </cc-button>
         </cc-flex-gap>
       </cc-flex-gap>
 
-      ${(isNameInvalid && this._variableName !== '') ? html`
+      ${(isNameInvalidStrict && this.mode === 'strict' && this._variableName !== '') ? html`
         <cc-error>${i18n(`cc-env-var-create.errors.invalid-name`, { name: this._variableName })}</cc-error>
       ` : ''}
+      ${(isNameInvalidStrict && isNameInvalidSimple && this.mode !== 'strict' && this._variableName !== '') ? html`
+        <cc-error>${i18n(`cc-env-var-create.errors.invalid-name`, { name: this._variableName })}</cc-error>
+      ` : ''}
+      ${(isNameInvalidStrict && !isNameInvalidSimple && this.mode !== 'strict' && this._variableName !== '') ? html`
+        <cc-error notice>${i18n(`cc-env-var-create.info.java-prop`, { name: this._variableName })}</cc-error>
+      ` : ''}
+
       ${isNameAlreadyDefined ? html`
         <cc-error>${i18n(`cc-env-var-create.errors.already-defined-name`, { name: this._variableName })}</cc-error>
       ` : ''}
+
     `;
   }
 
   static get styles () {
     return [
       defaultThemeStyles,
+      linkStyles,
       // language=CSS
       css`
-        :host {
-          --cc-gap: 0.5rem;
-          display: block;
-        }
+  :host {
+  --cc-gap: 0.5rem;
+  display: block;
+  }
 
-        .name {
-          flex: 1 1 15rem;
-        }
+  .name {
+  flex: 1 1 15rem;
+  }
 
-        .input-btn {
-          flex: 2 1 27rem;
-        }
+  .input-btn {
+  flex: 2 1 27rem;
+  }
 
-        .value {
-          /* 100 seems weird but it is necessary */
-          /* it helps to have a button that almost does not grow except when it wraps on its own line */
-          flex: 100 1 20rem;
-        }
+  .value {
+  /* 100 seems weird but it is necessary */
+  /* it helps to have a button that almost does not grow except when it wraps on its own line */
+  flex: 100 1 20rem;
+  }
 
-        cc-button {
-          align-self: flex-start;
-          flex: 1 1 6rem;
-          white-space: nowrap;
-        }
+  cc-button {
+  align-self: flex-start;
+  flex: 1 1 6rem;
+  white-space: nowrap;
+  }
 
-        cc-error {
-          margin: 0.5rem 0;
-        }
+  cc-error {
+  margin: 0.5rem 0;
+  }
 
-        /* i18n error message may contain <code> tags */
-        cc-error code {
-          background-color: #f3f3f3;
-          border-radius: 0.25rem;
-          font-family: var(--cc-ff-monospace);
-          padding: 0.15rem 0.3rem;
-        }
-      `,
+  /* i18n error message may contain <code> tags */
+    cc-error code {
+    background-color: #f3f3f3;
+    border-radius: 0.25rem;
+    font-family: var(--cc-ff-monospace);
+    padding: 0.15rem 0.3rem;
+    }
+    `,
     ];
   }
+
 }
 
 window.customElements.define('cc-env-var-create', CcEnvVarCreate);

@@ -10,6 +10,8 @@ title: Changelog
   * `<cc-env-var-editor-json>`
 * `<cc-env-var-form>`: add JSON mode
 * `<cc-env-var-editor-expert>`: keeping only valid values when leaving expert mode
+* `<cc-env-var-editor-simple>`: add a strict mode
+* `<cc-env-var-create>`: add a strict mode
 * `<cc-error>`: add a notice mode
 
 

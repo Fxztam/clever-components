@@ -76,6 +76,10 @@ export const dataLoadedWithCustomHeadingAndDescription = makeStory(conf, {
   }],
 });
 
+export const dataLoadedWithStrictMode = makeStory(conf, {
+  items: [{ appName: 'Foobar backend python (strict mode)', context: 'env-var', variables: VARIABLES_FULL, parserOptions: { mode: 'strict' } }],
+});
+
 export const saving = makeStory(conf, {
   items: [{ appName: 'Foobar backend python', context: 'env-var', variables: VARIABLES_FULL, saving: true }],
 });
@@ -92,6 +96,8 @@ export const errorWithSaving = makeStory(conf, {
   items: [{ appName: 'Foobar backend python', context: 'env-var', variables: VARIABLES_FULL, error: 'saving' }],
 });
 
+
+
 enhanceStoriesNames({
   defaultStory,
   skeleton,
@@ -106,6 +112,7 @@ enhanceStoriesNames({
   dataLoadedWithCustomHeadingAndReadonly,
   dataLoadedWithRestartButton,
   dataLoadedWithCustomHeadingAndDescription,
+  dataLoadedWithStrictMode,
   saving,
   errorWithLoading,
   errorWithLoadingAndReadonly,

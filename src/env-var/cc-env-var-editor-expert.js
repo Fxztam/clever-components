@@ -5,6 +5,7 @@ import { css, html, LitElement } from 'lit-element';
 import { dispatchCustomEvent } from '../lib/events.js';
 import { i18n } from '../lib/i18n.js';
 import { defaultThemeStyles } from '../styles/default-theme.js';
+import { linkStyles } from '../templates/cc-link.js';
 
 /** @type {Variable[]} */
 const SKELETON_VARIABLES = [
@@ -16,7 +17,7 @@ const SKELETON_VARIABLES = [
 /**
  * A high level environment variable editor to create/edit/delete all variables at once as a big string (properly parsed with validation and error messages).
  *
- * @typedef {import('./types.js').ParseError} ParseError
+ * @typedef {import('./types.js').ParserOptions} ParserOptions
  * @typedef {import('./types.js').Variable} Variable
  *
  * @cssdisplay block / none (with `[hidden]`)
@@ -28,11 +29,12 @@ export class CcEnvVarEditorExpert extends LitElement {
   static get properties () {
     return {
       disabled: { type: Boolean },
+      parserOptions: { type: Object },
       readonly: { type: Boolean },
       variables: { type: Array },
+      _variablesAsText: { type: Array, attribute: false },
       _errors: { type: Array, attribute: false },
       _skeleton: { type: Boolean, attribute: false },
-      _variablesAsText: { type: Array, attribute: false },
     };
   }
 
@@ -41,6 +43,9 @@ export class CcEnvVarEditorExpert extends LitElement {
 
     /** @type {boolean} Sets `disabled` attribute on inputs and buttons. */
     this.disabled = false;
+
+    /** @type {ParserOptions} Sets the options for the variables parser. */
+    this.parserOptions = { mode: null };
 
     /** @type {boolean} Sets `readonly` attribute on main input and hides buttons. */
     this.readonly = false;
@@ -64,32 +69,51 @@ export class CcEnvVarEditorExpert extends LitElement {
         return {
           line: pos.line,
           msg: i18n('cc-env-var-editor-expert.errors.invalid-name', { name }),
+          isNotice: false,
         };
       }
       if (type === ERROR_TYPES.DUPLICATED_NAME) {
         return {
           line: pos.line,
           msg: i18n('cc-env-var-editor-expert.errors.duplicated-name', { name }),
+          isNotice: false,
         };
       }
       if (type === ERROR_TYPES.INVALID_LINE) {
         return {
           line: pos.line,
           msg: i18n('cc-env-var-editor-expert.errors.invalid-line'),
+          isNotice: false,
         };
       }
       if (type === ERROR_TYPES.INVALID_VALUE) {
         return {
           line: pos.line,
           msg: i18n('cc-env-var-editor-expert.errors.invalid-value'),
+          isNotice: false,
         };
       }
+      if (type === ERROR_TYPES.INVALID_NAME_STRICT) {
+        return {
+          line: pos.line,
+          msg: i18n('cc-env-var-editor-expert.errors.invalid-name-strict', { name }),
+          isNotice: false,
+        };
+      }
+      if (type === ERROR_TYPES.JAVA_INFO) {
+        return {
+          line: pos.line,
+          msg: i18n('cc-env-var-editor-expert.info.java-prop', { name }),
+          isNotice: true,
+        };
+      }
+
       return { line: '?', msg: i18n('cc-env-var-editor-expert.errors.unknown') };
     });
   }
 
   _onInput ({ detail: value }) {
-    const { variables, errors } = parseRaw(value);
+    const { variables, errors } = parseRaw(value, this.parserOptions);
     this._setErrors(errors);
     dispatchCustomEvent(this, 'change', variables);
   }
@@ -107,16 +131,18 @@ export class CcEnvVarEditorExpert extends LitElement {
   }
 
   render () {
-    const placeholder = this.readonly
-      ? i18n('cc-env-var-editor-expert.placeholder-readonly')
-      : i18n('cc-env-var-editor-expert.placeholder');
-
     return html`
+
+      ${!this.readonly
+        ? html`
+          <div class="example">
+            ${i18n('cc-env-var-editor-expert.example')}
+          </div>
+        ` : ''}
       <cc-input-text
         multi
         clipboard
         value=${this._variablesAsText}
-        placeholder=${placeholder}
         ?disabled=${this.disabled}
         ?readonly=${this.readonly}
         ?skeleton=${this._skeleton}
@@ -125,8 +151,13 @@ export class CcEnvVarEditorExpert extends LitElement {
 
       ${this._errors.length > 0 ? html`
         <div class="error-list">
-          ${this._errors.map(({ line, msg }) => html`
-            <cc-error><strong>${i18n('cc-env-var-editor-expert.errors.line')} ${line}:</strong> ${msg}</cc-error>
+          ${this._errors.map(({ line, msg, isNotice }) => html`
+            ${!isNotice ? html`
+              <cc-error><strong>${i18n('cc-env-var-editor-expert.errors.line')} ${line}:</strong> ${msg}</cc-error>
+            ` : ''}
+            ${isNotice ? html`
+              <cc-error notice><strong>${i18n('cc-env-var-editor-expert.errors.line')} ${line}:</strong> ${msg}</cc-error>
+            ` : ''}
           `)}
         </div>
       ` : ''}
@@ -136,32 +167,42 @@ export class CcEnvVarEditorExpert extends LitElement {
   static get styles () {
     return [
       defaultThemeStyles,
+      linkStyles,
       // language=CSS
       css`
-        :host {
-          display: block;
-        }
+          :host {
+              display: block;
+          }
 
-        :host([hidden]) {
-          display: none;
-        }
+          :host([hidden]) {
+              display: none;
+          }
 
-        .error-list {
-          display: grid;
-          grid-gap: 0.75rem;
-          margin-top: 1rem;
-        }
+          .error-list {
+              display: grid;
+              grid-gap: 0.75rem;
+              margin-top: 1rem;
+          }
 
-        /* i18n error message may contain <code> tags */
-        cc-error code {
-          background-color: #f3f3f3;
-          border-radius: 0.25rem;
-          font-family: var(--cc-ff-monospace);
-          padding: 0.15rem 0.3rem;
-        }
+          .example {
+              padding-bottom: 1em;
+              line-height: 1.5;
+          }
+
+
+          /* i18n error message may contain <code> tags */
+          cc-error code,
+          .example code {
+              background-color: #f3f3f3;
+              border-radius: 0.25rem;
+              font-family: var(--cc-ff-monospace);
+              padding: 0.15rem 0.3rem;
+          }
       `,
     ];
   }
+
+
 }
 
 window.customElements.define('cc-env-var-editor-expert', CcEnvVarEditorExpert);
